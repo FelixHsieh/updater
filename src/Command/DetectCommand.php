@@ -7,6 +7,7 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use GuzzleHttp\Event\ProgressEvent;
 use Owncloud\Updater\Utils\Fetcher;
 use Owncloud\Updater\Utils\Feed;
 use Owncloud\Updater\Utils\ConfigReader;
@@ -44,10 +45,16 @@ class DetectCommand extends Command {
 - 2. version in config.php, 
 - 3. online available verison.
 (ASK) what to do? (download, upgrade, abort, …)')
+				->addOption(
+						'exit-if-none', null, InputOption::VALUE_NONE, 'exit with non-zero status code if new version is not found'
+				)
 		;
 	}
 
 	protected function execute(InputInterface $input, OutputInterface $output){
+		$container = $this->getApplication()->getContainer();
+		$locator = $container['utils.locator'];
+		$fsHelper = $container['utils.filesystemhelper'];
 		try{
 			$currentVersion = $this->configReader->getByPath('system.version');
 			if (!strlen($currentVersion)){
@@ -63,7 +70,14 @@ class DetectCommand extends Command {
 				$path = $this->fetcher->getBaseDownloadPath($feed);
 				$fileExists = $this->isCached($feed, $output);
 				if (!$fileExists){
-					$this->fetcher->getOwncloud($feed);
+					$this->fetcher->getOwncloud($feed, function (ProgressEvent $e) use ($output) {
+					$percentString = '';
+					if ($e->downloadSize){
+						$percent = intval(100* $e->downloaded / $e->downloadSize );
+						$percentString = $percent . '%';
+					}
+    $output->write( 'Downloaded ' . $percentString . ' (' . $e->downloaded . ' of ' . $e->downloadSize . ")\r");
+});
 					if (md5_file($path) !== $this->fetcher->getMd5($feed)){
 						$output->writeln('Downloaded ' . $feed->getDownloadedFileName() . '. Checksum is incorrect.');
 						@unlink($path);
@@ -72,18 +86,34 @@ class DetectCommand extends Command {
 					}
 				}
 				if ($fileExists){
-					$zipExtractor = new ZipExtractor(
-							$path, '/tmp'
-					);
-					$zipExtractor->extract();
+					$fullExtractionPath = $locator->getExtractionBaseDir() . '/' . $feed->getVersion();
+					if (!file_exists($fullExtractionPath)){
+						try {
+							$fsHelper->mkdir($fullExtractionPath, true);
+						} catch (\Exception $ex) {
+							$output->writeln('Unable create directory ' . $fullExtractionPath);
+						}
+					}
+					$output->writeln('Extracting source into ' . $fullExtractionPath);
+
+					$zipExtractor = new ZipExtractor($path, $fullExtractionPath);
+					try {
+						$zipExtractor->extract();
+					} catch (\Exception $ex) {
+						$output->writeln('Extraction has been failed');
+						$fsHelper->removeIfExists($locator->getExtractionBaseDir());
+					}
 				}
 			} else {
-				$output->writeln('No updates found');
+				$output->writeln('No updates found online.');
+				if ($input->getOption('exit-if-none')){
+					exit(4);
+				}
 			}
 		} catch (\Exception $e){
 			$this->getApplication()->getLogger()->error($e->getMessage());
+			exit(2);
 		}
-		$output->writeln($this->getDescription());
 	}
 
 	public function isCached(Feed $feed, OutputInterface $output){
