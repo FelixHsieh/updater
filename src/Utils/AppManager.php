@@ -1,4 +1,23 @@
 <?php
+/**
+ * @author Victor Dubiniuk <dubiniuk@owncloud.com>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
+ */
 
 namespace Owncloud\Updater\Utils;
 
@@ -67,6 +86,27 @@ class AppManager {
 				$output->writeln($message);
 			}
 		}
+	}
+
+	public function getAllApps(){
+		$shippedApps = $this->occRunner->runJson('app:list');
+		$allApps = array_merge(array_keys($shippedApps['enabled']), array_keys($shippedApps['disabled']));
+		return $allApps;
+	}
+
+	public function getShippedApps(){
+		$shippedApps = $this->occRunner->runJson('app:list --shipped true');
+		$allApps = array_merge(array_keys($shippedApps['enabled']), array_keys($shippedApps['disabled']));
+		return $allApps;
+	}
+
+	public function getAppPath($appId){
+		try {
+			$response = $this->occRunner->run('app:getpath ' . ProcessUtils::escapeArgument($appId));
+		} catch (\Exception $e) {
+			return '';
+		}
+		return trim($response);
 	}
 
 }

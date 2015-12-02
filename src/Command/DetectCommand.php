@@ -1,8 +1,26 @@
 <?php
+/**
+ * @author Victor Dubiniuk <dubiniuk@owncloud.com>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
+ */
 
 namespace Owncloud\Updater\Command;
 
-use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -52,16 +70,15 @@ class DetectCommand extends Command {
 	}
 
 	protected function execute(InputInterface $input, OutputInterface $output){
-		$container = $this->getApplication()->getContainer();
-		$locator = $container['utils.locator'];
-		$fsHelper = $container['utils.filesystemhelper'];
+		$locator = $this->container['utils.locator'];
+		$fsHelper = $this->container['utils.filesystemhelper'];
 		try{
 			$currentVersion = $this->configReader->getByPath('system.version');
 			if (!strlen($currentVersion)){
 				throw new \UnexpectedValueException('Could not detect installed version.');
 			}
 
-			$this->getApplication()->getLogger()->info('ownCloud ' . $currentVersion . 'found');
+			$this->getApplication()->getLogger()->info('ownCloud ' . $currentVersion . ' found');
 			$output->writeln('Current version is ' . $currentVersion);
 
 			$feed = $this->fetcher->getFeed();

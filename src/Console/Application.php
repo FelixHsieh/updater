@@ -1,5 +1,23 @@
 <?php
-
+/**
+ * @author Victor Dubiniuk <dubiniuk@owncloud.com>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
+ */
 namespace Owncloud\Updater\Console;
 
 use Pimple\Container;
@@ -64,7 +82,7 @@ class Application extends \Symfony\Component\Console\Application {
 
 			$configReader = $this->diContainer['utils.configReader'];
 			$commandName = $this->getCommandName($input);
-			if ($commandName!=='upgrade:executeCoreUpgradeScripts'){
+			if (!in_array($commandName, ['upgrade:executeCoreUpgradeScripts', 'upgrade:checkpoint'])){
 				$configReader->init();
 			}
 			return parent::doRun($input, $output);
@@ -75,6 +93,7 @@ class Application extends \Symfony\Component\Console\Application {
 	}
 
 	protected function doRunCommand(Command $command, InputInterface $input, OutputInterface $output){
+		$command->setContainer($this->getContainer());
 		$commandName = $this->getCommandName($input);
 		$this->getLogger()->info('Execution of ' . $commandName . ' command started');
 		$message = sprintf('<info>%s</info>', $command->getDescription());
