@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @author Victor Dubiniuk <dubiniuk@owncloud.com>
  *
@@ -19,24 +20,21 @@
  *
  */
 
-namespace Owncloud\Updater\Command;
+namespace Owncloud\Updater\Utils;
 
-class Command extends \Symfony\Component\Console\Command\Command{
-	/**
-	 * @var \Pimple\Container
-	 */
-	protected $container;
+class Registry {
 
-	/**
-	 * @var string
-	 */
-	protected $message = '';
+	protected $objects = array();
 
-	public function getMessage(){
-		return $this->message;
+	function set($name, $object){
+		$this->objects[$name] = $object;
 	}
 
-	public function setContainer($container){
-		$this->container = $container;
- 	}
+	function get($name){
+		if (isset($this->objects[$name])){
+			return $this->objects[$name];
+		}
+		return null;
+	}
+
 }
